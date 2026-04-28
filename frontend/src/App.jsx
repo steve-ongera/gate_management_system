@@ -1,122 +1,87 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import Layout from './components/Layout.jsx';
+import Login from './pages/Login.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import Entries from './pages/Entries.jsx';
+import CheckIn from './pages/CheckIn.jsx';
+import Residents from './pages/Residents.jsx';
+import Vehicles from './pages/Vehicles.jsx';
+import Visitors from './pages/Visitors.jsx';
+import Deliveries from './pages/Deliveries.jsx';
+import Incidents from './pages/Incidents.jsx';
+import Blacklist from './pages/Blacklist.jsx';
+import Parking from './pages/Parking.jsx';
+import Units from './pages/Units.jsx';
+import Users from './pages/Users.jsx';
+import Reports from './pages/Reports.jsx';
+import AuditLog from './pages/AuditLog.jsx';
+import { getUser, getToken } from './utils/api.js';
 
-function App() {
-  const [count, setCount] = useState(0)
+export const AuthContext = createContext(null);
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+export function useAuth() {
+  return useContext(AuthContext);
 }
 
-export default App
+function RequireAuth({ children }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  return children;
+}
+
+function RequireAdmin({ children }) {
+  const { user } = useAuth();
+  if (!user || user.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+export default function App() {
+  const [user, setUser] = useState(() => getUser());
+  const [token, setToken] = useState(() => getToken());
+
+  useEffect(() => {
+    const storedUser = getUser();
+    if (storedUser) setUser(storedUser);
+  }, []);
+
+  const authValue = { user, setUser, token, setToken };
+
+  return (
+    <AuthContext.Provider value={authValue}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <Layout />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard"    element={<Dashboard />} />
+            <Route path="entries"      element={<Entries />} />
+            <Route path="check-in"     element={<CheckIn />} />
+            <Route path="residents"    element={<Residents />} />
+            <Route path="vehicles"     element={<Vehicles />} />
+            <Route path="visitors"     element={<Visitors />} />
+            <Route path="deliveries"   element={<Deliveries />} />
+            <Route path="incidents"    element={<Incidents />} />
+            <Route path="blacklist"    element={<Blacklist />} />
+            <Route path="parking"      element={<Parking />} />
+            <Route path="units"        element={<Units />} />
+            <Route path="reports"      element={<RequireAdmin><Reports /></RequireAdmin>} />
+            <Route path="audit-log"    element={<RequireAdmin><AuditLog /></RequireAdmin>} />
+            <Route path="users"        element={<RequireAdmin><Users /></RequireAdmin>} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthContext.Provider>
+  );
+}
