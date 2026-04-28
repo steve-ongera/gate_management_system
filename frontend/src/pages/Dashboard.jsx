@@ -1,3 +1,4 @@
+// src/pages/Dashboard.jsx  –  cx/cy bug fixed (was missing `const`)
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI, entriesAPI, formatDateTime } from '../utils/api.js';
@@ -33,7 +34,8 @@ function BarChart({ data, color = 'var(--primary)' }) {
 function DonutChart({ segments, size = 110 }) {
   const total = segments.reduce((s, x) => s + x.value, 0);
   let angle = -90;
-  const r = 42; cx = size / 2; cy = size / 2;
+  // ✅ Fixed: cx and cy now properly declared with const
+  const r = 42, cx = size / 2, cy = size / 2;
   const paths = segments.map(seg => {
     const pct = total ? seg.value / total : 0;
     const a = pct * 360;
@@ -62,7 +64,7 @@ function DonutChart({ segments, size = 110 }) {
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value, sub, iconClass, trend }) {
+function StatCard({ icon, label, value, sub, iconClass }) {
   return (
     <div className="stat-card">
       <div className="stat-card-header">
@@ -111,41 +113,37 @@ export default function Dashboard() {
 
   const typeBreakdown = stats?.entry_type_breakdown || {};
   const donutSegments = [
-    { label: 'Resident',    value: typeBreakdown.resident   || 0, color: 'var(--primary)' },
-    { label: 'Visitor',     value: typeBreakdown.visitor    || 0, color: 'var(--accent)' },
-    { label: 'Delivery',    value: typeBreakdown.delivery   || 0, color: 'var(--success)' },
-    { label: 'Contractor',  value: typeBreakdown.contractor || 0, color: 'var(--warning)' },
-    { label: 'Emergency',   value: typeBreakdown.emergency  || 0, color: 'var(--danger)' },
+    { label: 'Resident',   value: typeBreakdown.resident   || 0, color: 'var(--primary)' },
+    { label: 'Visitor',    value: typeBreakdown.visitor    || 0, color: 'var(--accent)' },
+    { label: 'Delivery',   value: typeBreakdown.delivery   || 0, color: 'var(--success)' },
+    { label: 'Contractor', value: typeBreakdown.contractor || 0, color: 'var(--warning)' },
+    { label: 'Emergency',  value: typeBreakdown.emergency  || 0, color: 'var(--danger)' },
   ];
 
   return (
     <>
       {/* Stat grid */}
       <div className="stat-grid">
-        <StatCard icon="bi-people-fill"      label="Total Residents"   value={stats?.total_residents}  sub={`${stats?.occupied_units}/${stats?.total_units} units occupied`} iconClass="icon-blue" />
-        <StatCard icon="bi-door-open-fill"   label="Entries Today"     value={stats?.entries_today}    sub={`${stats?.exits_today} exits`}             iconClass="icon-green" />
-        <StatCard icon="bi-people"           label="Currently Inside"  value={stats?.currently_inside} sub="live count"                               iconClass="icon-cyan" />
-        <StatCard icon="bi-person-badge"     label="Visitor Entries"   value={stats?.visitor_entries_today} sub="today"                               iconClass="icon-yellow" />
-        <StatCard icon="bi-box-seam"         label="Pending Parcels"   value={stats?.pending_deliveries} sub="awaiting collection"                    iconClass="icon-blue" />
-        <StatCard icon="bi-exclamation-tri." label="Open Incidents"    value={stats?.open_incidents}   sub="unresolved"                               iconClass="icon-red" />
-        <StatCard icon="bi-car-front"        label="Registered Vehicles" value={stats?.total_vehicles} sub="active"                                   iconClass="icon-green" />
-        <StatCard icon="bi-slash-circle"     label="Blacklisted"       value={stats?.active_blacklist} sub="active entries"                           iconClass="icon-red" />
+        <StatCard icon="bi-people-fill"      label="Total Residents"    value={stats?.total_residents}       sub={`${stats?.occupied_units}/${stats?.total_units} units occupied`} iconClass="icon-blue" />
+        <StatCard icon="bi-door-open-fill"   label="Entries Today"      value={stats?.entries_today}         sub={`${stats?.exits_today} exits`}             iconClass="icon-green" />
+        <StatCard icon="bi-people"           label="Currently Inside"   value={stats?.currently_inside}      sub="live count"                                iconClass="icon-cyan" />
+        <StatCard icon="bi-person-badge"     label="Visitor Entries"    value={stats?.visitor_entries_today} sub="today"                                     iconClass="icon-yellow" />
+        <StatCard icon="bi-box-seam"         label="Pending Parcels"    value={stats?.pending_deliveries}    sub="awaiting collection"                       iconClass="icon-blue" />
+        <StatCard icon="bi-exclamation-triangle" label="Open Incidents" value={stats?.open_incidents}        sub="unresolved"                                iconClass="icon-red" />
+        <StatCard icon="bi-car-front"        label="Vehicles"           value={stats?.total_vehicles}        sub="active"                                    iconClass="icon-green" />
+        <StatCard icon="bi-slash-circle"     label="Blacklisted"        value={stats?.active_blacklist}      sub="active entries"                            iconClass="icon-red" />
       </div>
 
       {/* Charts row */}
       <div className="grid-2" style={{ marginBottom: 20 }}>
-        {/* Weekly entries bar chart */}
         <div className="card">
           <div className="card-header">
             <span className="card-title">Entries – Last 7 Days</span>
-            <button className="btn btn-outline btn-sm" onClick={() => navigate('/entries')}>
-              View all
-            </button>
+            <button className="btn btn-outline btn-sm" onClick={() => navigate('/entries')}>View all</button>
           </div>
           <BarChart data={stats?.entries_this_week} color="var(--primary)" />
         </div>
 
-        {/* Entry type donut */}
         <div className="card">
           <div className="card-header">
             <span className="card-title">Today's Entry Breakdown</span>
@@ -165,7 +163,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Unit occupancy progress */}
+      {/* Occupancy + Quick actions */}
       <div className="grid-2" style={{ marginBottom: 20 }}>
         <div className="card">
           <div className="card-header">
@@ -175,8 +173,8 @@ export default function Dashboard() {
             </button>
           </div>
           {[
-            { label: 'Occupied',    val: stats?.occupied_units, total: stats?.total_units, color: 'var(--success)' },
-            { label: 'Vacant',      val: (stats?.total_units - stats?.occupied_units), total: stats?.total_units, color: 'var(--warning)' },
+            { label: 'Occupied', val: stats?.occupied_units,                                 total: stats?.total_units, color: 'var(--success)' },
+            { label: 'Vacant',   val: (stats?.total_units - stats?.occupied_units),          total: stats?.total_units, color: 'var(--warning)' },
           ].map(item => {
             const pct = stats?.total_units ? (item.val / stats.total_units) * 100 : 0;
             return (
@@ -193,30 +191,23 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Quick actions */}
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">Quick Actions</span>
-          </div>
+          <div className="card-header"><span className="card-title">Quick Actions</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { icon: 'bi-door-open-fill', label: 'Check In',      path: '/check-in',   color: 'var(--primary)' },
-              { icon: 'bi-box-seam-fill',  label: 'Log Delivery',  path: '/deliveries', color: 'var(--success)' },
-              { icon: 'bi-exclamation-triangle-fill', label: 'Log Incident', path: '/incidents', color: 'var(--danger)' },
-              { icon: 'bi-person-plus-fill', label: 'Add Resident', path: '/residents', color: 'var(--accent)' },
+              { icon: 'bi-door-open-fill',              label: 'Check In',    path: '/check-in',  color: 'var(--primary)' },
+              { icon: 'bi-box-seam-fill',               label: 'Log Delivery',path: '/deliveries',color: 'var(--success)' },
+              { icon: 'bi-exclamation-triangle-fill',   label: 'Log Incident',path: '/incidents', color: 'var(--danger)' },
+              { icon: 'bi-person-plus-fill',            label: 'Add Resident',path: '/residents', color: 'var(--accent)' },
             ].map(a => (
               <button
                 key={a.label}
                 onClick={() => navigate(a.path)}
                 style={{
-                  padding: '14px 12px',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--surface)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  transition: 'all .15s',
-                  fontFamily: 'inherit',
+                  padding: '14px 12px', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)', background: 'var(--surface)',
+                  cursor: 'pointer', textAlign: 'center',
+                  transition: 'all .15s', fontFamily: 'inherit',
                 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
@@ -236,9 +227,7 @@ export default function Dashboard() {
             Currently Inside
             <span className="badge badge-green" style={{ marginLeft: 8 }}>{live.length}</span>
           </span>
-          <button className="btn btn-outline btn-sm" onClick={() => navigate('/entries?inside_only=true')}>
-            Full list
-          </button>
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/entries?inside_only=true')}>Full list</button>
         </div>
         {live.length === 0 ? (
           <div className="empty-state">
@@ -250,36 +239,23 @@ export default function Dashboard() {
             <table>
               <thead>
                 <tr>
-                  <th>Person</th>
-                  <th>Type</th>
-                  <th>Gate</th>
-                  <th>Vehicle</th>
-                  <th>Checked In</th>
-                  <th>Unit</th>
+                  <th>Person</th><th>Type</th><th>Gate</th><th>Vehicle</th><th>Checked In</th><th>Unit</th>
                 </tr>
               </thead>
               <tbody>
                 {live.slice(0, 10).map(e => (
                   <tr key={e.id}>
-                    <td>
-                      <strong style={{ fontSize: 13 }}>
-                        {e.resident_name || e.visitor_name || '—'}
-                      </strong>
-                    </td>
+                    <td><strong style={{ fontSize: 13 }}>{e.resident_name || e.visitor_name || '—'}</strong></td>
                     <td>
                       <span className={`badge ${
-                        e.entry_type === 'resident' ? 'badge-blue' :
+                        e.entry_type === 'resident' ? 'badge-blue'   :
                         e.entry_type === 'visitor'  ? 'badge-yellow' :
-                        e.entry_type === 'delivery' ? 'badge-green' : 'badge-gray'
-                      }`}>
-                        {e.entry_type}
-                      </span>
+                        e.entry_type === 'delivery' ? 'badge-green'  : 'badge-gray'
+                      }`}>{e.entry_type}</span>
                     </td>
                     <td style={{ color: 'var(--text-2)' }}>{e.gate_name || '—'}</td>
                     <td><code style={{ fontSize: 12 }}>{e.vehicle_plate || '—'}</code></td>
-                    <td style={{ color: 'var(--text-2)', fontSize: 12.5 }}>
-                      {formatDateTime(e.check_in_time)}
-                    </td>
+                    <td style={{ color: 'var(--text-2)', fontSize: 12.5 }}>{formatDateTime(e.check_in_time)}</td>
                     <td style={{ color: 'var(--text-2)' }}>{e.host_unit_label || '—'}</td>
                   </tr>
                 ))}
