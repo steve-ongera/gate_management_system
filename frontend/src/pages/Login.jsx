@@ -1,16 +1,17 @@
+// src/pages/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { authAPI, saveAuth } from '../utils/api.js';
-import { useAuth } from '../App.jsx';
+import { useAuth } from '../context/AuthContext.jsx';   // ✅ fixed – was ../App.jsx
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser, setToken } = useAuth();
+  const { login } = useAuth();
 
-  const [form, setForm] = useState({ username: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [form, setForm]               = useState({ username: '', password: '' });
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -19,13 +20,14 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const data = await authAPI.login(form.username, form.password);
-      saveAuth(data.access, data.refresh, data.user);
-      setUser(data.user);
-      setToken(data.access);
+      await login(form.username, form.password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err?.data?.non_field_errors?.[0] || 'Invalid credentials. Please try again.');
+      setError(
+        err?.data?.non_field_errors?.[0] ||
+        err?.data?.detail ||
+        'Invalid credentials. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -40,7 +42,7 @@ export default function Login() {
       justifyContent: 'center',
       padding: 20,
     }}>
-      {/* Background pattern */}
+      {/* Dot-grid background */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 0,
         backgroundImage: 'radial-gradient(var(--border) 1.5px, transparent 1.5px)',
@@ -82,6 +84,7 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit}>
+            {/* Username */}
             <div className="form-group">
               <label className="form-label required">Username</label>
               <div className="search-bar">
@@ -98,18 +101,37 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Password with show/hide toggle */}
             <div className="form-group">
               <label className="form-label required">Password</label>
               <div className="search-bar">
                 <i className="bi bi-lock" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Enter password"
                   value={form.password}
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                   required
                   autoComplete="current-password"
+                  style={{ flex: 1 }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(s => !s)}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '0 2px', color: 'var(--text-3)',
+                    display: 'flex', alignItems: 'center',
+                    fontSize: '1rem', transition: 'color 150ms',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}
+                >
+                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} />
+                </button>
               </div>
             </div>
 
